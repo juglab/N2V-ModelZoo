@@ -1,0 +1,86 @@
+name: N2V_2D_SEM_Example
+description: 2D SEM example from the Noise2Void repository.
+cite:
+    - text: "Krull, Alexander, Tim-Oliver Buchholz, and Florian Jug. "Noise2void-learning denoising from single noisy images." Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition. 2019."
+      doi: https://arxiv.org/abs/1811.10980v2
+authors:
+    - Tim-Oliver Buchholz, CSBD MPI-CBG
+documentation: ../n2v.md
+tags: [n2v, denoising, 2D]
+
+format_version: 0.1.0
+language: python
+framework: tensorflow
+
+source: n2v.models.N2V:N2V
+kwargs: {
+            config: None,
+            name: "N2V_2D_SEM_Example",
+            basedir: "./"
+        }
+
+test_input: ./test_data/test_input.npy
+test_output: ./test_data/test_output.npy
+thumbnail: ./N2V_2D_SEM_Thumbnail.png
+
+inputs:
+  - name: input
+    axes: byxc
+    data_type: float32
+    data_range: [-inf, inf]
+    shape:
+        min: [1, 32, 32, 1]
+        step: [null, 32, 32, 0]
+outputs:
+  - name: output
+    axes: byxc
+    data_type: float32
+    data_range: [-inf, inf]
+    shape:
+        reference_input: input
+        scale: [1, 1, 1, 1]
+        offset: [0, 0, 0, 0]
+        halo: [0, 22, 22, 0]
+
+prediction:
+    preprocess: 
+        - spec: n2v.models.n2v_standard.py:__normalize__
+          kwargs:
+            {
+                data: [0],
+                means: ./N2V_2D_SEM_Example/config.json:means,
+                stds: ./N2V_2D_SEM_Example/config.json:stds
+            }
+    weights:
+        source: TODO
+        hash: {md5: TODO}
+    postprocess: 
+        - spec: n2v.models.n2v_standard.py:__denormalize__
+          kwargs:
+            {
+                data: [0],
+                means: ./N2V_2D_SEM_Example/config.json:means,
+                stds: ./N2V_2D_SEM_Example/config.json:stds
+            }
+    dependencies: conda:./environment.yaml
+
+training:
+    setup: 
+        reader:
+            - spec: ./n2v_2D_SEM_training.py:n2v_2D_read_npz
+              kwargs:
+                {
+                    source: https://cloud.mpi-cbg.de/index.php/s/ddQNlSES9xT6Bx6/download
+                }
+    source: ./n2v_2D_SEM_training.py:train
+    kwargs: 
+        { 
+            model_name: N2V_2D_SEM_Example,
+            basedir: ./
+        }
+    # enable different ways of specifying the dependencies.
+    # this would hold all training dependencies, e.g. as a frozen conda environment
+    # or as a pom.xml
+    dependencies: # this is a file to the dependencies
+        conda:./environment.yaml
+    description: "Train the unet via binary cross entropy"
